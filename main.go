@@ -101,6 +101,7 @@ func main() {
 	}
 
 	for i, sourcePath := range sm.Sources {
+        sourcePath = "/" + sourcePath // path.Clean will ignore a leading '..', must be a '/..'
 		scriptPath, scriptData := path.Join(*outDir, path.Clean(sourcePath)), sm.SourcesContent[i]
 		writeFile(scriptPath, scriptData)
 	}
