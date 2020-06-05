@@ -14,10 +14,10 @@ Usage of ./sourcemapper:
   -output string
         Source file output directory
   -url string
-        URL to the Sourcemap file
+        URL or path to the Sourcemap file
 ```
 
-Sourcemapper will download the map file at `url`, and then spit the sources out into the directory defined by `output`
+Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`.
 
 ```None
 doi@asov:~$ ./sourcemapper -o dhubsrc -u https://hub.docker.com/public/js/client.356c14916fb23f85707f.js.map
@@ -51,4 +51,4 @@ doi@asov:~/dhubsrc$ cd webpack\:/app/scripts/components/
 
 ## Limitations
 
-Paths such as 'webpack:/~/src/whatever/omg.js' are pretty common, so this tool will likely fail on NTFS file systems. EXT4 works fine though :D
+Paths such as 'webpack:/~/src/whatever/omg.js' are pretty common, so this tool cleans them up on windows.
