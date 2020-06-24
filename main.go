@@ -90,7 +90,7 @@ func writeFile(p string, content string) error {
 	if _, err := os.Stat(filepath.Dir(p)); os.IsNotExist(err) {
 		// Using MkdirAll here is tricky, because even if we fail, we might have
 		// created some of the parent directories.
-		err = os.MkdirAll(filepath.Dir(p), os.ModeDir)
+		err = os.MkdirAll(filepath.Dir(p), 0700)
 		if err != nil {
 			return err
 		}
