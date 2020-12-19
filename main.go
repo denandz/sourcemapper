@@ -39,20 +39,26 @@ func isURL(source string) bool {
 	}
 	return false
 }
-
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
 // its sourceMap.
-func getSourceMap(source string) (m sourceMap, err error) {
+func getSourceMap(source string, cookie string) (m sourceMap, err error) {
 	var body []byte
 
 	fmt.Printf("[+] Retrieving Sourcemap from %s.\n", source)
 
 	if isURL(source) {
 		// If it's a URL, get it.
-		var res *http.Response
-		res, err = http.Get(source)
+		//var res *http.Response
+		req, err := http.NewRequest("GET", source, nil)
+		//res, err = http.Get(source)
+
+		client := &http.Client{}
+		req.Header.Set("Cookie", cookie)
+		res, err := client.Do(req)
+
+
 		if err != nil {
-			return // == return m, err
+			log.Fatalln(err) // == return m, err
 		}
 
 		if res.StatusCode != 200 {
@@ -62,13 +68,13 @@ func getSourceMap(source string) (m sourceMap, err error) {
 		body, err = ioutil.ReadAll(res.Body)
 		defer res.Body.Close()
 		if err != nil {
-			return
+			log.Fatalln(err)
 		}
 	} else {
 		// If it's a file, read it.
 		body, err = ioutil.ReadFile(source)
 		if err != nil {
-			return
+			log.Fatalln(err)
 		}
 	}
 
@@ -110,6 +116,7 @@ func main() {
 	outDir := flag.String("output", "", "Source file output directory")
 	url := flag.String("url", "", "URL or path to the Sourcemap file")
 	help := flag.Bool("help", false, "Show help")
+	cookie := flag.String("cookie", "", "Set a cookie to be sent with the Request")
 	flag.Parse()
 
 	if *help || *url == "" || *outDir == "" {
@@ -117,7 +124,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	sm, err := getSourceMap(*url)
+	sm, err := getSourceMap(*url, *cookie)
 	if err != nil {
 		log.Fatal(err)
 	}
