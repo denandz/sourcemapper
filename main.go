@@ -116,7 +116,7 @@ func main() {
 	outDir := flag.String("output", "", "Source file output directory")
 	url := flag.String("url", "", "URL or path to the Sourcemap file")
 	help := flag.Bool("help", false, "Show help")
-	cookie := flag.String("cookie", "", "Set a cookie to be sent with the Request")
+	cookie := flag.String("cookie", "", "Set the cookie header to be sent with the request. EG: \"jsessionid=foo;someothercookie=blah;\"")
 	flag.Parse()
 
 	if *help || *url == "" || *outDir == "" {

@@ -9,12 +9,14 @@ An article explaining its purpose is available here: [https://pulsesecurity.co.n
 ```None
 :~$ ./sourcemapper
 Usage of ./sourcemapper:
+  -cookie string
+    	Set the cookie header to be sent with the request. EG: "jsessionid=foo;someothercookie=blah;"
   -help
-        Show help
+    	Show help
   -output string
-        Source file output directory
+    	Source file output directory
   -url string
-        URL or path to the Sourcemap file
+    	URL or path to the Sourcemap file
 ```
 
 Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`.
