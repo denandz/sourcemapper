@@ -9,14 +9,14 @@ An article explaining its purpose is available here: [https://pulsesecurity.co.n
 ```None
 :~$ ./sourcemapper
 Usage of ./sourcemapper:
-  -cookie string
-    	Set the cookie header to be sent with the request. EG: "jsessionid=foo;someothercookie=blah;"
+  -header value
+    	A header to send with the request, similar to curl's -H. Can be set multiple times, EG: "./sourcemapper --header "Cookie: session=bar" --header "Authorization: blerp"
   -help
     	Show help
   -output string
-    	Source file output directory
+    	Source file output directory - REQUIRED
   -url string
-    	URL or path to the Sourcemap file
+    	URL or path to the Sourcemap file - REQUIRED
 ```
 
 Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`.
@@ -53,4 +53,4 @@ doi@asov:~/dhubsrc$ cd webpack\:/app/scripts/components/
 
 ## Limitations
 
-Paths such as 'webpack:/~/src/whatever/omg.js' are pretty common, so this tool cleans them up on windows.
+Paths such as `webpack:/~/src/whatever/omg.js` are pretty common, so this tool cleans them up on windows.

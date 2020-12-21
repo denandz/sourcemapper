@@ -1,17 +1,20 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/textproto"
 	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 )
 
 // sourceMap represents a sourceMap. We only really care about the sources and
@@ -20,6 +23,17 @@ type sourceMap struct {
 	Version        int      `json:"version"`
 	Sources        []string `json:"sources"`
 	SourcesContent []string `json:"sourcesContent"`
+}
+
+type headerList []string
+
+func (i *headerList) String() string {
+	return ""
+}
+
+func (i *headerList) Set(value string) error {
+	*i = append(*i, value)
+	return nil
 }
 
 // isURL tries to figure out if a string is a URL or not.
@@ -39,23 +53,35 @@ func isURL(source string) bool {
 	}
 	return false
 }
+
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
 // its sourceMap.
-func getSourceMap(source string, cookie string) (m sourceMap, err error) {
+func getSourceMap(source string, headers []string) (m sourceMap, err error) {
 	var body []byte
 
 	fmt.Printf("[+] Retrieving Sourcemap from %s.\n", source)
 
 	if isURL(source) {
 		// If it's a URL, get it.
-		//var res *http.Response
 		req, err := http.NewRequest("GET", source, nil)
-		//res, err = http.Get(source)
 
 		client := &http.Client{}
-		req.Header.Set("Cookie", cookie)
-		res, err := client.Do(req)
+		if len(headers) > 0 {
+			headerString := strings.Join(headers, "\r\n") + "\r\n\r\n" // squish all the headers together with CRLFs
+			fmt.Printf("[+] Setting the following headers: \n%s", headerString)
 
+			r := bufio.NewReader(strings.NewReader(headerString))
+			tpReader := textproto.NewReader(r)
+			mimeHeader, err := tpReader.ReadMIMEHeader()
+
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			req.Header = http.Header(mimeHeader)
+		}
+
+		res, err := client.Do(req)
 
 		if err != nil {
 			log.Fatalln(err) // == return m, err
@@ -81,11 +107,7 @@ func getSourceMap(source string, cookie string) (m sourceMap, err error) {
 	// Unmarshall the body into the struct.
 	fmt.Printf("[+] Read %d bytes, parsing JSON.\n", len(body))
 	err = json.Unmarshal(body, &m)
-	// if err != nil {
-	// 	log.Fatalf("Error parsing JSON: %s", err)
-	// }
 
-	// No need to check for errors here, we can just return (m, err)
 	return
 }
 
@@ -113,10 +135,13 @@ func cleanWindows(p string) string {
 }
 
 func main() {
+
+	var headers headerList
+
 	outDir := flag.String("output", "", "Source file output directory")
 	url := flag.String("url", "", "URL or path to the Sourcemap file")
 	help := flag.Bool("help", false, "Show help")
-	cookie := flag.String("cookie", "", "Set the cookie header to be sent with the request. EG: \"jsessionid=foo;someothercookie=blah;\"")
+	flag.Var(&headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
 	flag.Parse()
 
 	if *help || *url == "" || *outDir == "" {
@@ -124,7 +149,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	sm, err := getSourceMap(*url, *cookie)
+	sm, err := getSourceMap(*url, headers)
 	if err != nil {
 		log.Fatal(err)
 	}
