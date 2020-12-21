@@ -138,8 +138,8 @@ func main() {
 
 	var headers headerList
 
-	outDir := flag.String("output", "", "Source file output directory")
-	url := flag.String("url", "", "URL or path to the Sourcemap file")
+	outDir := flag.String("output", "", "Source file output directory - REQUIRED")
+	url := flag.String("url", "", "URL or path to the Sourcemap file - REQUIRED")
 	help := flag.Bool("help", false, "Show help")
 	flag.Var(&headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
 	flag.Parse()
