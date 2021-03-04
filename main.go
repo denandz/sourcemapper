@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"crypto/tls"
 )
 
 // sourceMap represents a sourceMap. We only really care about the sources and
@@ -65,7 +66,10 @@ func getSourceMap(source string, headers []string) (m sourceMap, err error) {
 		// If it's a URL, get it.
 		req, err := http.NewRequest("GET", source, nil)
 
-		client := &http.Client{}
+		tr := &http.Transport{
+		    TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+		}
+		client := &http.Client{Transport: tr}
 		if len(headers) > 0 {
 			headerString := strings.Join(headers, "\r\n") + "\r\n\r\n" // squish all the headers together with CRLFs
 			fmt.Printf("[+] Setting the following headers: \n%s", headerString)
