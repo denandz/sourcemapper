@@ -15,6 +15,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"crypto/tls"
 )
 
 // sourceMap represents a sourceMap. We only really care about the sources and
@@ -56,8 +57,9 @@ func isURL(source string) bool {
 
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
 // its sourceMap.
-func getSourceMap(source string, headers []string) (m sourceMap, err error) {
+func getSourceMap(source string, headers []string, insecureTLS bool) (m sourceMap, err error) {
 	var body []byte
+	var client http.Client
 
 	fmt.Printf("[+] Retrieving Sourcemap from %s.\n", source)
 
@@ -65,7 +67,15 @@ func getSourceMap(source string, headers []string) (m sourceMap, err error) {
 		// If it's a URL, get it.
 		req, err := http.NewRequest("GET", source, nil)
 
-		client := &http.Client{}
+		if insecureTLS {
+			tr := &http.Transport {
+				TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+			}
+			client = http.Client{Transport: tr}
+		} else {
+			client = http.Client{}
+		}
+
 		if len(headers) > 0 {
 			headerString := strings.Join(headers, "\r\n") + "\r\n\r\n" // squish all the headers together with CRLFs
 			fmt.Printf("[+] Setting the following headers: \n%s", headerString)
@@ -141,6 +151,7 @@ func main() {
 	outDir := flag.String("output", "", "Source file output directory - REQUIRED")
 	url := flag.String("url", "", "URL or path to the Sourcemap file - REQUIRED")
 	help := flag.Bool("help", false, "Show help")
+	insecure := flag.Bool("insecure", false, "Ignore invalid TLS certificates")
 	flag.Var(&headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
 	flag.Parse()
 
@@ -149,7 +160,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	sm, err := getSourceMap(*url, headers)
+	sm, err := getSourceMap(*url, headers, *insecure)
 	if err != nil {
 		log.Fatal(err)
 	}
