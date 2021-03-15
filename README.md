@@ -13,6 +13,8 @@ Usage of ./sourcemapper:
     	A header to send with the request, similar to curl's -H. Can be set multiple times, EG: "./sourcemapper --header "Cookie: session=bar" --header "Authorization: blerp"
   -help
     	Show help
+  -insecure
+    	Ignore invalid TLS certificates
   -output string
     	Source file output directory - REQUIRED
   -url string
