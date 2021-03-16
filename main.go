@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -15,7 +16,6 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"crypto/tls"
 )
 
 // sourceMap represents a sourceMap. We only really care about the sources and
@@ -57,7 +57,7 @@ func isURL(source string) bool {
 
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
 // its sourceMap.
-func getSourceMap(source string, headers []string, insecureTLS bool) (m sourceMap, err error) {
+func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL url.URL) (m sourceMap, err error) {
 	var body []byte
 	var client http.Client
 
@@ -66,14 +66,22 @@ func getSourceMap(source string, headers []string, insecureTLS bool) (m sourceMa
 	if isURL(source) {
 		// If it's a URL, get it.
 		req, err := http.NewRequest("GET", source, nil)
+		tr := &http.Transport{}
 
+		if proxyURL != (url.URL{}) {
+			tr.Proxy = http.ProxyURL(&proxyURL)
+		}
 		if insecureTLS {
-			tr := &http.Transport {
-				TLSClientConfig: &tls.Config{InsecureSkipVerify : true},
+			tr := &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
-			client = http.Client{Transport: tr}
+			client = http.Client{
+				Transport: tr,
+			}
 		} else {
-			client = http.Client{}
+			client = http.Client{
+				Transport: tr,
+			}
 		}
 
 		if len(headers) > 0 {
@@ -147,20 +155,29 @@ func cleanWindows(p string) string {
 func main() {
 
 	var headers headerList
+	var proxyURL url.URL
 
 	outDir := flag.String("output", "", "Source file output directory - REQUIRED")
-	url := flag.String("url", "", "URL or path to the Sourcemap file - REQUIRED")
+	urlflag := flag.String("url", "", "URL or path to the Sourcemap file - REQUIRED")
+	proxy := flag.String("proxy", "", "Explicity HTTP client proxy")
 	help := flag.Bool("help", false, "Show help")
 	insecure := flag.Bool("insecure", false, "Ignore invalid TLS certificates")
 	flag.Var(&headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
 	flag.Parse()
 
-	if *help || *url == "" || *outDir == "" {
+	if *help || *urlflag == "" || *outDir == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
+	if *proxy != "" {
+		p, err := url.Parse(*proxy)
+		if err != nil {
+			log.Println(err)
+		}
+		proxyURL = *p
+	}
 
-	sm, err := getSourceMap(*url, headers, *insecure)
+	sm, err := getSourceMap(*urlflag, headers, *insecure, proxyURL)
 	if err != nil {
 		log.Fatal(err)
 	}
