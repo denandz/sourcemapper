@@ -68,17 +68,23 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 		req, err := http.NewRequest("GET", source, nil)
 		tr := &http.Transport{}
 
-		if proxyURL != (url.URL{}) {
-			tr.Proxy = http.ProxyURL(&proxyURL)
-		}
 		if insecureTLS {
 			tr := &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
+			if proxyURL != (url.URL{}) {
+				tr.Proxy = http.ProxyURL(&proxyURL)
+			}
+
+			tr.Proxy = http.ProxyURL(&proxyURL)
 			client = http.Client{
 				Transport: tr,
 			}
 		} else {
+
+			if proxyURL != (url.URL{}) {
+				tr.Proxy = http.ProxyURL(&proxyURL)
+			}
 			client = http.Client{
 				Transport: tr,
 			}
