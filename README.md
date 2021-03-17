@@ -17,6 +17,8 @@ Usage of ./sourcemapper:
     	Ignore invalid TLS certificates
   -output string
     	Source file output directory - REQUIRED
+  -proxy string
+    	Proxy URL
   -url string
     	URL or path to the Sourcemap file - REQUIRED
 ```
