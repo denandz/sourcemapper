@@ -69,25 +69,17 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 		tr := &http.Transport{}
 
 		if insecureTLS {
-			tr := &http.Transport{
+			tr = &http.Transport{
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
 			}
-			if proxyURL != (url.URL{}) {
-				tr.Proxy = http.ProxyURL(&proxyURL)
-			}
 
+		}
+		if proxyURL != (url.URL{}) {
 			tr.Proxy = http.ProxyURL(&proxyURL)
-			client = http.Client{
-				Transport: tr,
-			}
-		} else {
+		}
 
-			if proxyURL != (url.URL{}) {
-				tr.Proxy = http.ProxyURL(&proxyURL)
-			}
-			client = http.Client{
-				Transport: tr,
-			}
+		client = http.Client{
+			Transport: tr,
 		}
 
 		if len(headers) > 0 {
@@ -165,7 +157,7 @@ func main() {
 
 	outDir := flag.String("output", "", "Source file output directory - REQUIRED")
 	urlflag := flag.String("url", "", "URL or path to the Sourcemap file - REQUIRED")
-	proxy := flag.String("proxy", "", "Explicity HTTP client proxy")
+	proxy := flag.String("proxy", "", "Proxy URL")
 	help := flag.Bool("help", false, "Show help")
 	insecure := flag.Bool("insecure", false, "Ignore invalid TLS certificates")
 	flag.Var(&headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
@@ -178,7 +170,7 @@ func main() {
 	if *proxy != "" {
 		p, err := url.Parse(*proxy)
 		if err != nil {
-			log.Println(err)
+			log.Fatal(err)
 		}
 		proxyURL = *p
 	}
