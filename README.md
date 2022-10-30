@@ -45,7 +45,7 @@ Flags:
 Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`.
 
 ```None
-doi@asov:~$ ./sourcemapper -output dhubsrc -url https://hub.docker.com/public/js/client.356c14916fb23f85707f.js.map
+doi@asov:~$ ./sourcemapper -o dhubsrc https://hub.docker.com/public/js/client.356c14916fb23f85707f.js.map
 [+] Retriving Sourcemap from https://hub.docker.com/public/js/client.356c14916fb23f85707f.js.map
 [+] Read 23045027 bytes, parsing JSON
 [+] Retrieved Sourcemap with version 3, containing 1828 entries
