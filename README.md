@@ -40,7 +40,9 @@ Usage of ./sourcemapper:
     	URL or path to the Sourcemap file - REQUIRED
 ```
 
-Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`.
+Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`. 
+
+The following example shows `sourcemapper` reading a `.map` file from Dockerhub. Note, dockerhub have since removed this map file so the literal command below will not provide this output any more.
 
 ```None
 doi@asov:~$ ./sourcemapper -output dhubsrc -url https://hub.docker.com/public/js/client.356c14916fb23f85707f.js.map
