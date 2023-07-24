@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"flag"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -61,7 +60,7 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 	var body []byte
 	var client http.Client
 
-	fmt.Printf("[+] Retrieving Sourcemap from %s.\n", source)
+	log.Printf("[+] Retrieving Sourcemap from %s.\n", source)
 
 	if isURL(source) {
 		// If it's a URL, get it.
@@ -82,7 +81,7 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 
 		if len(headers) > 0 {
 			headerString := strings.Join(headers, "\r\n") + "\r\n\r\n" // squish all the headers together with CRLFs
-			fmt.Printf("[+] Setting the following headers: \n%s", headerString)
+			log.Printf("[+] Setting the following headers: \n%s", headerString)
 
 			r := bufio.NewReader(strings.NewReader(headerString))
 			tpReader := textproto.NewReader(r)
@@ -121,7 +120,7 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 	}
 
 	// Unmarshall the body into the struct.
-	fmt.Printf("[+] Read %d bytes, parsing JSON.\n", len(body))
+	log.Printf("[+] Read %d bytes, parsing JSON.\n", len(body))
 	err = json.Unmarshal(body, &m)
 
 	if err != nil {
@@ -144,7 +143,7 @@ func writeFile(p string, content string) error {
 		}
 	}
 
-	fmt.Printf("[+] Writing %d bytes to %s.\n", len(content), p)
+	log.Printf("[+] Writing %d bytes to %s.\n", len(content), p)
 	return ioutil.WriteFile(p, []byte(content), 0600)
 }
 
@@ -184,7 +183,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("[+] Retrieved Sourcemap with version %d, containing %d entries.\n", sm.Version, len(sm.Sources))
+	log.Printf("[+] Retrieved Sourcemap with version %d, containing %d entries.\n", sm.Version, len(sm.Sources))
 
 	if len(sm.Sources) == 0 {
 		log.Fatal("No sources found.")
@@ -195,7 +194,7 @@ func main() {
 	}
 
 	if sm.Version != 3 {
-		fmt.Println("[!] Sourcemap is not version 3. This is untested!")
+		log.Println("[!] Sourcemap is not version 3. This is untested!")
 	}
 
 	if _, err := os.Stat(*outDir); os.IsNotExist(err) {
@@ -220,5 +219,5 @@ func main() {
 		}
 	}
 
-	fmt.Println("[+] Done")
+	log.Println("[+] Done")
 }
