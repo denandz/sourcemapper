@@ -98,15 +98,17 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 		res, err := client.Do(req)
 
 		if err != nil {
-			log.Fatalln(err) // == return m, err
-		}
-
-		if res.StatusCode != 200 {
-			return m, fmt.Errorf("sourceMap URL request return != 200")
+			log.Fatalln(err)
 		}
 
 		body, err = ioutil.ReadAll(res.Body)
 		defer res.Body.Close()
+
+		if res.StatusCode != 200 && len(body) > 0 {
+			log.Printf("[!] WARNING - non-200 status code: %d", res.StatusCode)
+			log.Printf("[!] WARNING - sourceMap URL request return != 200 - however, body length > 0 so continuing... ")
+		}
+
 		if err != nil {
 			log.Fatalln(err)
 		}
