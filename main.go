@@ -124,6 +124,10 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 	fmt.Printf("[+] Read %d bytes, parsing JSON.\n", len(body))
 	err = json.Unmarshal(body, &m)
 
+	if err != nil {
+		log.Printf("[!] Error parsing JSON - confirm %s a valid JS sourcemap", source)
+	}
+
 	return
 }
 
@@ -179,7 +183,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	//fmt.Printf("%+v\n", sm)
 
 	fmt.Printf("[+] Retrieved Sourcemap with version %d, containing %d entries.\n", sm.Version, len(sm.Sources))
 
