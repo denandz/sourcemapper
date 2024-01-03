@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"flag"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/textproto"
@@ -67,6 +67,10 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 		req, err := http.NewRequest("GET", source, nil)
 		tr := &http.Transport{}
 
+		if err != nil {
+			log.Fatalln(err)
+		}
+
 		if insecureTLS {
 			tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}
@@ -100,7 +104,7 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 			log.Fatalln(err)
 		}
 
-		body, err = ioutil.ReadAll(res.Body)
+		body, err = io.ReadAll(res.Body)
 		defer res.Body.Close()
 
 		if res.StatusCode != 200 && len(body) > 0 {
@@ -113,7 +117,7 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 		}
 	} else {
 		// If it's a file, read it.
-		body, err = ioutil.ReadFile(source)
+		body, err = os.ReadFile(source)
 		if err != nil {
 			log.Fatalln(err)
 		}
@@ -144,7 +148,7 @@ func writeFile(p string, content string) error {
 	}
 
 	log.Printf("[+] Writing %d bytes to %s.\n", len(content), p)
-	return ioutil.WriteFile(p, []byte(content), 0600)
+	return os.WriteFile(p, []byte(content), 0600)
 }
 
 // cleanWindows replaces the illegal characters from a path with `-`.
