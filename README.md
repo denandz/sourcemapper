@@ -40,7 +40,7 @@ Usage of ./sourcemapper:
     	URL or path to the Sourcemap file - REQUIRED
 ```
 
-Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`. 
+Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`. `url` can be either an URL, or a path to a map file on disk. Extracting a sourcemap to a file can get around sourcemaps configured with `sourceMappingURL=data:application/json;.... base64 blob...` by decoding the blob into a file, then passing the file path to sourcemapper.
 
 The following example shows `sourcemapper` reading a `.map` file from Dockerhub. Note, Dockerhub have since removed this map file so the literal command below will not provide this output any more.
 
