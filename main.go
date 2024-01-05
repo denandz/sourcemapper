@@ -54,7 +54,7 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 	var body []byte
 	var client http.Client
 
-	log.Printf("[+] Retrieving Sourcemap from %s...\n", source[:1024])
+	log.Printf("[+] Retrieving Sourcemap from %.1024s...\n", source)
 
 	u, err := url.ParseRequestURI(source)
 	if err != nil {
@@ -213,7 +213,7 @@ func getSourceMapFromJS(jsurl string, headers []string, insecureTLS bool, proxyU
 	}
 
 	if sourceMap != "" {
-		log.Printf("[.] Found SourceMap URI in response headers: %s...", sourceMap[:1024])
+		log.Printf("[.] Found SourceMap URI in response headers: %.1024s...", sourceMap)
 	} else {
 		// parse the javascript
 		body, err := io.ReadAll(res.Body)
@@ -229,7 +229,7 @@ func getSourceMapFromJS(jsurl string, headers []string, insecureTLS bool, proxyU
 		if len(match) != 0 {
 			// only the sourcemap at the end of the file should be valid
 			sourceMap = string(match[len(match)-1][1])
-			log.Printf("[.] Found SourceMap in JavaScript body: %s...", sourceMap[:1024])
+			log.Printf("[.] Found SourceMap in JavaScript body: %.1024s...", sourceMap)
 		}
 	}
 

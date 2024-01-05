@@ -32,15 +32,19 @@ Usage of ./sourcemapper:
     	Show help
   -insecure
     	Ignore invalid TLS certificates
+  -jsurl string
+    	URL to JavaScript file - cannot be used with url
   -output string
     	Source file output directory - REQUIRED
   -proxy string
     	Proxy URL
   -url string
-    	URL or path to the Sourcemap file - REQUIRED
+    	URL or path to the Sourcemap file - cannot be used with jsurl
 ```
 
 Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`. `url` can be either an URL, or a path to a map file on disk. Extracting a sourcemap to a file can get around sourcemaps configured with `sourceMappingURL=data:application/json;.... base64 blob...` by decoding the blob into a file, then passing the file path to sourcemapper.
+
+## Extracting SourceMaps from .map URLs or local files
 
 The following example shows `sourcemapper` reading a `.map` file from Dockerhub. Note, Dockerhub have since removed this map file so the literal command below will not provide this output any more.
 
@@ -74,6 +78,21 @@ actions/     components/  middlewares/ reducers/    selectors/   stores/      ve
 doi@asov:~/dhubsrc$ cd webpack\:/app/scripts/components/
 ```
 
-## Limitations
+## Extracting SourceMaps directly from JavaScript files
 
-Paths such as `webpack:/~/src/whatever/omg.js` are pretty common, so this tool cleans them up on windows.
+`sourcemapper` can read a JavaScript file from a URL and try to determine whether a sourcemap reference is present. If it is, `sourcemapper` will download and parse the sourcemap. Absolute, relative and `data:` sourcemap references are currently supported. `sourcemapper` follows the rules outlined in https://tc39.es/source-map-spec/#linking-generated-code.
+
+The following shows an example of an inline sourcemap being parsed by processing the JavaScript file directly:
+
+```None
+$ ./sourcemapper -output test -jsurl http://localhost:8080/main.js
+024/01/05 18:43:53 [+] Retrieving JavaScript from URL: http://localhost:8080/main.js.
+2024/01/05 18:43:53 [.] Found SourceMap in JavaScript body: data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7O0FBQVk7O0FBRVo7O0FBRUE7QUFDQSxtREFBbUQsSUFBSSxTQUFTLE1BQU0sSUFBSTs7QUFFMUU7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQSxDQUFDO0FBQ0Q7QUFDQSxDQUFDOztBQUVEO0FBQ0E7QUFDQSxXQUFXLFFBQVE7QUFDbkIsYUFBYTtBQUNiO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBLHVDQUF1QztBQUN2QztBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsMkRBQTJEO0FBQzNEOztBQUVBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsR0FBRzs7QUFFSDtBQUNBO0FBQ0EsR0FBRzs7QUFFSDtBQUNBOztBQUVBO0FBQ0E7QUFDQSxXQUFXLFFBQVE7QUFDbkI7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBLE9BQU87QUFDUDtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBLE1BQU07Q...
+2024/01/05 18:43:53 [+] Retrieving Sourcemap from data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7O0FBQVk7O0FBRVo7O0FBRUE7QUFDQSxtREFBbUQsSUFBSSxTQUFTLE1BQU0sSUFBSTs7QUFFMUU7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQSxDQUFDO0FBQ0Q7QUFDQSxDQUFDOztBQUVEO0FBQ0E7QUFDQSxXQUFXLFFBQVE7QUFDbkIsYUFBYTtBQUNiO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBLHVDQUF1QztBQUN2QztBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsMkRBQTJEO0FBQzNEOztBQUVBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsR0FBRzs7QUFFSDtBQUNBO0FBQ0EsR0FBRzs7QUFFSDtBQUNBOztBQUVBO0FBQ0E7QUFDQSxXQUFXLFFBQVE7QUFDbkI7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBLE9BQU87QUFDUDtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBLE1BQU07Q...
+2024/01/05 18:43:53 [+] Read 4708918 bytes, parsing JSON.
+2024/01/05 18:43:54 [+] Retrieved Sourcemap with version 3, containing 535 entries.
+2024/01/05 18:43:54 [+] Writing 4262 bytes to test/webpack:/app/node_modules/ansi-html-community/index.js.
+2024/01/05 18:43:54 [+] Writing 40 bytes to test/webpack:/app/node_modules/axios/index.js.
+```
+
+**Note: sourcemapper will retrieve any URL referenced as a sourcemap, so a malicious JavaScript file parsed with sourcemapper can force sourcemapper to make a GET request to any URL**
