@@ -42,8 +42,6 @@ Usage of ./sourcemapper:
     	URL or path to the Sourcemap file - cannot be used with jsurl
 ```
 
-Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`. `url` can be either an URL, or a path to a map file on disk. Extracting a sourcemap to a file can get around sourcemaps configured with `sourceMappingURL=data:application/json;.... base64 blob...` by decoding the blob into a file, then passing the file path to sourcemapper.
-
 ## Extracting SourceMaps from .map URLs or local files
 
 The following example shows `sourcemapper` reading a `.map` file from Dockerhub. Note, Dockerhub have since removed this map file so the literal command below will not provide this output any more.
@@ -77,6 +75,8 @@ doi@asov:~/dhubsrc$ cd webpack\:/app/scripts/
 actions/     components/  middlewares/ reducers/    selectors/   stores/      vendor/
 doi@asov:~/dhubsrc$ cd webpack\:/app/scripts/components/
 ```
+
+Sourcemapper will download or read the map file at `url`, and then spit the sources out into the directory defined by `output`. `url` can be either an URL, or a path to a map file on disk. Extracting a sourcemap to a file can get around sourcemaps configured with `sourceMappingURL=data:application/json;.... base64 blob...` by decoding the blob into a file, then passing the file path to sourcemapper. Alternatively, `data:` URL can be handled by directly parsing the JavaScript file as discussed in the following section.
 
 ## Extracting SourceMaps directly from JavaScript files
 
