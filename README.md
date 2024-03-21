@@ -8,22 +8,28 @@ An article explaining its purpose is available here: [https://pulsesecurity.co.n
 
 If you have a recent version of Go installed:
 
-```
+```bash
 go install github.com/denandz/sourcemapper@latest
 ```
 
 Otherwise you can clone and build:
 
-```
+```bash
 git clone https://github.com/denandz/sourcemapper
 cd sourcemapper
 go get
 go build
 ```
 
+If you are running [BlackArch Linux](https://blackarch.org/):
+
+```bash
+pacman -S sourcemapper
+```
+
 ## Usage
 
-```None
+```text
 :~$ ./sourcemapper
 Usage of ./sourcemapper:
   -header value
@@ -46,7 +52,7 @@ Usage of ./sourcemapper:
 
 The following example shows `sourcemapper` reading a `.map` file from Dockerhub. Note, Dockerhub have since removed this map file so the literal command below will not provide this output any more.
 
-```None
+```text
 doi@asov:~$ ./sourcemapper -output dhubsrc -url https://hub.docker.com/public/js/client.356c14916fb23f85707f.js.map
 [+] Retriving Sourcemap from https://hub.docker.com/public/js/client.356c14916fb23f85707f.js.map
 [+] Read 23045027 bytes, parsing JSON
@@ -84,7 +90,7 @@ Sourcemapper will download or read the map file at `url`, and then spit the sour
 
 The following shows an example of an inline sourcemap being parsed by processing the JavaScript file directly:
 
-```None
+```text
 $ ./sourcemapper -output test -jsurl http://localhost:8080/main.js
 024/01/05 18:43:53 [+] Retrieving JavaScript from URL: http://localhost:8080/main.js.
 2024/01/05 18:43:53 [.] Found SourceMap in JavaScript body: data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoibWFpbi5qcyIsIm1hcHBpbmdzIjoiOzs7Ozs7Ozs7O0FBQVk7O0FBRVo7O0FBRUE7QUFDQSxtREFBbUQsSUFBSSxTQUFTLE1BQU0sSUFBSTs7QUFFMUU7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQSxDQUFDO0FBQ0Q7QUFDQSxDQUFDOztBQUVEO0FBQ0E7QUFDQSxXQUFXLFFBQVE7QUFDbkIsYUFBYTtBQUNiO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBLHVDQUF1QztBQUN2QztBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsMkRBQTJEO0FBQzNEOztBQUVBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0EsR0FBRzs7QUFFSDtBQUNBO0FBQ0EsR0FBRzs7QUFFSDtBQUNBOztBQUVBO0FBQ0E7QUFDQSxXQUFXLFFBQVE7QUFDbkI7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBLE9BQU87QUFDUDtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTtBQUNBO0FBQ0E7QUFDQTs7QUFFQTtBQUNBLE1BQU07Q...
