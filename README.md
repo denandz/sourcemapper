@@ -9,13 +9,13 @@ An article explaining its purpose is available here: [https://pulsesecurity.co.n
 If you have a recent version of Go installed:
 
 ```bash
-go install github.com/denandz/sourcemapper@latest
+go install github.com/IgorDuino/sourcemapper@latest
 ```
 
 Otherwise you can clone and build:
 
 ```bash
-git clone https://github.com/denandz/sourcemapper
+git clone https://github.com/IgorDuino/sourcemapper
 cd sourcemapper
 go get
 go build
@@ -32,6 +32,8 @@ pacman -S sourcemapper
 ```text
 :~$ ./sourcemapper
 Usage of ./sourcemapper:
+  -file string
+    	File containing URLs (one per line) - cannot be used with url, jsurl, or stdin
   -header value
     	A header to send with the request, similar to curl's -H. Can be set multiple times, EG: "./sourcemapper --header "Cookie: session=bar" --header "Authorization: blerp"
   -help
@@ -39,13 +41,15 @@ Usage of ./sourcemapper:
   -insecure
     	Ignore invalid TLS certificates
   -jsurl string
-    	URL to JavaScript file - cannot be used with url
+    	URL to JavaScript file - cannot be used with url, file, or stdin
   -output string
     	Source file output directory - REQUIRED
   -proxy string
     	Proxy URL
+  -stdin
+    	Read URLs from stdin (one per line) - cannot be used with url, jsurl, or file
   -url string
-    	URL or path to the Sourcemap file - cannot be used with jsurl
+    	URL or path to the Sourcemap file - cannot be used with jsurl, file, or stdin
 ```
 
 ## Extracting SourceMaps from .map URLs or local files
@@ -99,6 +103,56 @@ $ ./sourcemapper -output test -jsurl http://localhost:8080/main.js
 2024/01/05 18:43:54 [+] Retrieved Sourcemap with version 3, containing 535 entries.
 2024/01/05 18:43:54 [+] Writing 4262 bytes to test/webpack:/app/node_modules/ansi-html-community/index.js.
 2024/01/05 18:43:54 [+] Writing 40 bytes to test/webpack:/app/node_modules/axios/index.js.
+```
+
+**Note: sourcemapper will retrieve any URL referenced as a sourcemap, so a malicious JavaScript file parsed with sourcemapper can force sourcemapper to make a GET request to any URL**
+
+## Processing Multiple URLs from a File
+
+The `-file` flag allows you to process multiple URLs at once by providing a file containing URLs (one per line). This is useful for batch processing multiple sourcemaps or JavaScript files.
+
+```text
+$ cat urls.txt
+# Lines starting with # are treated as comments
+https://example.com/app.js
+https://example.com/bundle.js.map
+https://example.com/vendor.js
+
+$ ./sourcemapper -file urls.txt -output ./sources
+[+] Processing 3 URLs from file urls.txt
+[+] Processing URL 1/3: https://example.com/app.js
+[+] Retrieving JavaScript from URL: https://example.com/app.js.
+...
+[+] Processing URL 2/3: https://example.com/bundle.js.map
+[+] Retrieving Sourcemap from https://example.com/bundle.js.map...
+...
+[+] Done
+```
+
+Empty lines and lines starting with `#` are ignored, allowing you to add comments and organize your URL lists.
+
+## Reading URLs from stdin (httpx integration)
+
+The `-stdin` flag allows you to pipe URLs directly into sourcemapper, making it easy to integrate with tools like [httpx](https://github.com/projectdiscovery/httpx). This is particularly useful when you want to process URLs discovered by other tools.
+
+```text
+$ cat urls.txt | ./sourcemapper -stdin -output ./sources
+[+] Processing 3 URLs from stdin
+[+] Processing URL 1/3: https://example.com/app.js
+...
+[+] Done
+```
+
+Example with httpx to discover and process JavaScript files:
+
+```text
+$ cat domains.txt | httpx -mc 200 -path /app.js | ./sourcemapper -stdin -output ./sources
+```
+
+Or to find and process all .js.map files:
+
+```text
+$ echo "https://example.com" | httpx -mc 200 -tech-detect | grep -i "\.js\.map" | ./sourcemapper -stdin -output ./sources
 ```
 
 **Note: sourcemapper will retrieve any URL referenced as a sourcemap, so a malicious JavaScript file parsed with sourcemapper can force sourcemapper to make a GET request to any URL**
