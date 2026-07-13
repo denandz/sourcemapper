@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
@@ -19,6 +20,10 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
+
+	"github.com/chromedp/cdproto/network"
+	"github.com/chromedp/chromedp"
 )
 
 // sourceMap represents a sourceMap. We only really care about the sources and
@@ -31,15 +36,19 @@ type sourceMap struct {
 
 // command line args
 type config struct {
-	outdir      string     // output directory
-	url         string     // sourcemap url
-	jsurl       string     // javascript url
-	dir         string     // directory of sourcemap files to process
-	page        string     // page url to crawl for javascript files
-	proxy       string     // upstream proxy server
-	insecure    bool       // skip tls verification
-	headers     headerList // additional user-supplied http headers
-	concurrency int        // max concurrent requests when crawling a page
+	outdir          string        // output directory
+	url             string        // sourcemap url
+	jsurl           string        // javascript url
+	dir             string        // directory of sourcemap files to process
+	page            string        // page url to crawl for javascript files
+	proxy           string        // upstream proxy server
+	insecure        bool          // skip tls verification
+	headers         headerList    // additional user-supplied http headers
+	concurrency     int           // max concurrent requests when crawling a page
+	render          bool          // use a headless browser to crawl -page, to catch dynamically-loaded JS
+	renderWait      time.Duration // extra time to let dynamic JS load after the page fires its load event
+	renderTimeout   time.Duration // hard cap on the whole -render browser session
+	renderNoSandbox bool          // launch chrome with --no-sandbox (needed running as root, e.g. in containers)
 }
 
 type headerList []string
@@ -380,6 +389,106 @@ func crawlPage(pageURL string, headers []string, insecureTLS bool, proxyURL url.
 	return extractScriptURLs(body, base), nil
 }
 
+// parseHeaderList converts curl-style "Key: Value" header strings into the
+// map form chromedp's network domain expects.
+func parseHeaderList(headers []string) (network.Headers, error) {
+	if len(headers) == 0 {
+		return nil, nil
+	}
+
+	headerString := strings.Join(headers, "\r\n") + "\r\n\r\n"
+	r := bufio.NewReader(strings.NewReader(headerString))
+	tpReader := textproto.NewReader(r)
+	mimeHeader, err := tpReader.ReadMIMEHeader()
+	if err != nil {
+		return nil, err
+	}
+
+	result := make(network.Headers, len(mimeHeader))
+	for k, v := range mimeHeader {
+		if len(v) > 0 {
+			result[k] = v[0]
+		}
+	}
+	return result, nil
+}
+
+// crawlPageRendered uses a headless browser to load pageURL and returns the
+// absolute URLs of every JavaScript file it requests - including scripts
+// loaded dynamically after the initial page load (SPA chunks, lazy imports,
+// XHR-injected <script> tags), which crawlPage's static HTML scrape misses.
+// Requires a local Chrome/Chromium install. This renders whatever the target
+// page serves, including any attacker-controlled JS, so unlike the rest of
+// this tool it doesn't disable the browser sandbox unless noSandbox is set.
+func crawlPageRendered(pageURL string, headers []string, insecureTLS, noSandbox bool, proxyURL url.URL, waitAfterLoad, timeout time.Duration) ([]string, error) {
+	log.Printf("[+] Rendering page %s in a headless browser to find JavaScript files...\n", pageURL)
+
+	opts := append([]chromedp.ExecAllocatorOption{}, chromedp.DefaultExecAllocatorOptions[:]...)
+	if insecureTLS {
+		opts = append(opts, chromedp.Flag("ignore-certificate-errors", true))
+	}
+	if noSandbox {
+		opts = append(opts, chromedp.NoSandbox)
+	}
+	if proxyURL != (url.URL{}) {
+		opts = append(opts, chromedp.ProxyServer(proxyURL.String()))
+	}
+
+	allocCtx, cancelAlloc := chromedp.NewExecAllocator(context.Background(), opts...)
+	defer cancelAlloc()
+
+	ctx, cancel := chromedp.NewContext(allocCtx)
+	defer cancel()
+
+	ctx, cancel = context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	extraHeaders, err := parseHeaderList(headers)
+	if err != nil {
+		return nil, err
+	}
+
+	var mu sync.Mutex
+	seen := make(map[string]bool)
+	var scriptURLs []string
+
+	chromedp.ListenTarget(ctx, func(ev interface{}) {
+		e, ok := ev.(*network.EventResponseReceived)
+		if !ok || e.Response == nil {
+			return
+		}
+
+		isJS := e.Type == network.ResourceTypeScript || strings.Contains(strings.ToLower(e.Response.MimeType), "javascript")
+		if !isJS {
+			return
+		}
+
+		u, err := url.Parse(e.Response.URL)
+		if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+			return
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+		if !seen[e.Response.URL] {
+			seen[e.Response.URL] = true
+			scriptURLs = append(scriptURLs, e.Response.URL)
+		}
+	})
+
+	actions := []chromedp.Action{network.Enable()}
+	if extraHeaders != nil {
+		actions = append(actions, network.SetExtraHTTPHeaders(extraHeaders))
+	}
+	actions = append(actions, chromedp.Navigate(pageURL), chromedp.Sleep(waitAfterLoad))
+
+	if err := chromedp.Run(ctx, actions...); err != nil {
+		return nil, err
+	}
+
+	return scriptURLs, nil
+}
+
 // writeFile writes content to file at path p.
 func writeFile(p string, content string) error {
 	p = filepath.Clean(p)
@@ -459,6 +568,10 @@ func main() {
 	flag.BoolVar(&conf.insecure, "insecure", false, "Ignore invalid TLS certificates")
 	flag.Var(&conf.headers, "header", "A header to send with the request, similar to curl's -H. Can be set multiple times, EG: \"./sourcemapper --header \"Cookie: session=bar\" --header \"Authorization: blerp\"")
 	flag.IntVar(&conf.concurrency, "concurrency", 5, "Max concurrent requests when crawling a page with -page")
+	flag.BoolVar(&conf.render, "render", false, "With -page, load the page in a headless Chrome/Chromium instance and capture JavaScript loaded dynamically (SPA chunks, lazy imports), not just what's in the initial HTML")
+	flag.DurationVar(&conf.renderWait, "render-wait", 3*time.Second, "With -render, extra time to let dynamically-loaded JavaScript fire after the page loads")
+	flag.DurationVar(&conf.renderTimeout, "render-timeout", 30*time.Second, "With -render, hard timeout for the whole headless browser session")
+	flag.BoolVar(&conf.renderNoSandbox, "render-no-sandbox", false, "With -render, launch Chrome with --no-sandbox (needed when running as root, e.g. in a container)")
 	flag.Parse()
 
 	if *help || (conf.url == "" && conf.jsurl == "" && conf.dir == "" && conf.page == "") || conf.outdir == "" {
@@ -527,7 +640,13 @@ func main() {
 			}
 		}
 	} else if conf.page != "" {
-		scriptURLs, err := crawlPage(conf.page, conf.headers, conf.insecure, proxyURL)
+		var scriptURLs []string
+		var err error
+		if conf.render {
+			scriptURLs, err = crawlPageRendered(conf.page, conf.headers, conf.insecure, conf.renderNoSandbox, proxyURL, conf.renderWait, conf.renderTimeout)
+		} else {
+			scriptURLs, err = crawlPage(conf.page, conf.headers, conf.insecure, proxyURL)
+		}
 		if err != nil {
 			log.Fatal(err)
 		}

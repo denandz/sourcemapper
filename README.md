@@ -32,6 +32,8 @@ pacman -S sourcemapper
 ```text
 :~$ ./sourcemapper
 Usage of ./sourcemapper:
+  -concurrency int
+    	Max concurrent requests when crawling a page with -page (default 5)
   -dir string
     	Directory of .map files to process recursively
   -header value
@@ -44,13 +46,23 @@ Usage of ./sourcemapper:
     	URL to JavaScript file
   -output string
     	Source file output directory - REQUIRED
+  -page string
+    	URL of a page to crawl for JavaScript files, processing every sourcemap found
   -proxy string
     	Proxy URL
+  -render
+    	With -page, load the page in a headless Chrome/Chromium instance and capture JavaScript loaded dynamically (SPA chunks, lazy imports), not just what's in the initial HTML
+  -render-no-sandbox
+    	With -render, launch Chrome with --no-sandbox (needed when running as root, e.g. in a container)
+  -render-timeout duration
+    	With -render, hard timeout for the whole headless browser session (default 30s)
+  -render-wait duration
+    	With -render, extra time to let dynamically-loaded JavaScript fire after the page loads (default 3s)
   -url string
     	URL or path to the Sourcemap file
 ```
 
-Only one of `-url`, `-jsurl`, or `-dir` can be specified at a time.
+Only one of `-url`, `-jsurl`, `-dir`, or `-page` can be specified at a time.
 
 ## Extracting SourceMaps from .map URLs or local files
 
@@ -122,3 +134,25 @@ $ ./sourcemapper -output test -jsurl http://localhost:8080/main.js
 ```
 
 **Note: sourcemapper will retrieve any URL referenced as a sourcemap, so a malicious JavaScript file parsed with sourcemapper can force sourcemapper to make a GET request to any URL**
+
+## Crawling a page for every JavaScript file
+
+Pass `-page` instead of `-url`/`-jsurl`/`-dir` to point `sourcemapper` at a page instead of a single file. It fetches the page, finds every `<script src>` reference, and runs the same extraction pipeline across all of them concurrently (`-concurrency`, default 5). Sources from each JS file are written to their own subdirectory under `-output`, named from that file's host and path, so trees from different files never collide. Files with no sourcemap, or that fail to fetch, are logged and skipped rather than aborting the run.
+
+```text
+$ ./sourcemapper -page https://example.com -output ./src
+[+] Crawling page https://example.com for JavaScript files...
+[+] Found 6 JavaScript file(s) on https://example.com
+[+] Retrieving JavaScript from URL: https://example.com/static/app.a1b2c3.js.
+...
+[+] Crawl of https://example.com complete: 4 sourcemap(s) extracted, 2 skipped/failed
+[+] Done
+```
+
+By default `-page` only sees scripts referenced in the initial HTML response, so it will miss JavaScript loaded dynamically at runtime - lazily-loaded SPA/webpack chunks, code-split routes, or scripts injected by other JavaScript. Add `-render` to load the page in a headless Chrome/Chromium instance instead, which captures every JS request the browser actually makes, including those:
+
+```text
+$ ./sourcemapper -page https://example.com -output ./src -render
+```
+
+`-render` requires a local Chrome or Chromium install. Useful related flags: `-render-wait` controls how long to let the page keep loading dynamic content after its initial load event fires (default 3s - bump this up for slower SPAs), `-render-timeout` is a hard cap on the whole browser session (default 30s), and `-render-no-sandbox` launches Chrome with `--no-sandbox`, which is needed when running as root (e.g. inside a container).
