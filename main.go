@@ -50,8 +50,10 @@ func (i *headerList) Set(value string) error {
 }
 
 // getSourceMap retrieves a sourcemap from a URL or a local file and returns
-// its sourceMap.
-func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL url.URL) (m sourceMap, err error) {
+// its sourceMap. If remoteSource is true, only http/https/data schemes are
+// allowed. Local file access is blocked to prevent arbitrary file reads from
+// attacker-controlled sourceMappingURL values.
+func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL url.URL, remoteSource bool) (m sourceMap, err error) {
 	var body []byte
 	var client http.Client
 
@@ -59,6 +61,9 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 
 	u, err := url.ParseRequestURI(source)
 	if err != nil {
+		if remoteSource {
+			log.Fatalf("[!] Refusing to read local file from remote sourceMappingURL: %s", source)
+		}
 		// If it's a file, read it.
 		body, err = os.ReadFile(source)
 		if err != nil {
@@ -131,6 +136,9 @@ func getSourceMap(source string, headers []string, insecureTLS bool, proxyURL ur
 
 			body = []byte(data)
 		} else {
+			if remoteSource {
+				log.Fatalf("[!] Refusing to read local file from remote sourceMappingURL: %s", source)
+			}
 			// If it's a file, read it.
 			body, err = os.ReadFile(source)
 			if err != nil {
@@ -248,7 +256,7 @@ func getSourceMapFromJS(jsurl string, headers []string, insecureTLS bool, proxyU
 			}
 		}
 
-		return getSourceMap(sourceMapURL.String(), headers, insecureTLS, proxyURL)
+		return getSourceMap(sourceMapURL.String(), headers, insecureTLS, proxyURL, true)
 	}
 
 	err = errors.New("[!] No sourcemap URL found")
@@ -386,7 +394,7 @@ func main() {
 
 		for _, mapFile := range mapFiles {
 			log.Printf("[+] Processing: %s", mapFile)
-			sm, err := getSourceMap(mapFile, conf.headers, conf.insecure, proxyURL)
+			sm, err := getSourceMap(mapFile, conf.headers, conf.insecure, proxyURL, false)
 			if err != nil {
 				log.Printf("[!] Error reading %s: %s, skipping.", mapFile, err)
 				continue
@@ -400,7 +408,7 @@ func main() {
 		var sm sourceMap
 
 		if conf.url != "" {
-			if sm, err = getSourceMap(conf.url, conf.headers, conf.insecure, proxyURL); err != nil {
+			if sm, err = getSourceMap(conf.url, conf.headers, conf.insecure, proxyURL, false); err != nil {
 				log.Fatal(err)
 			}
 		} else if conf.jsurl != "" {
