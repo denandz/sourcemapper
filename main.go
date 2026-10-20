@@ -536,6 +536,12 @@ func processSourceMap(sm sourceMap, outdir string) error {
 	}
 
 	for i, sourcePath := range sm.Sources {
+		// sourcesContent may be shorter than sources (the spec allows it).
+		if i >= len(sm.SourcesContent) {
+			log.Printf("[!] No source content for %s, skipping.", sourcePath)
+			continue
+		}
+
 		sourcePath = "/" + sourcePath // path.Clean will ignore a leading '..', must be a '/..'
 		// If on windows, clean the sourcepath.
 		if runtime.GOOS == "windows" {
